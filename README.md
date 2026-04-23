@@ -1,124 +1,103 @@
-# 📊 Agente de Análise de Mídia e Receita - E-commerce
+# 📊 MONKS Media AI - Agente de Análise de Mídia e Receita
 
-Sistema inteligente baseado em **Claude IA + LangGraph + BigQuery** para análise automática de dados de mídia, tráfego e faturamento de e-commerce.
+Sistema inteligente de análise de dados para e-commerce baseado em **Claude 3.5 Haiku**, **LangGraph** e **Google BigQuery**. O agente atua como um Analista de Mídia e Growth, transformando perguntas complexas em insights estratégicos e recomendações acionáveis.
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Arquitetura do Projeto
 
-```
+O projeto segue princípios de **Clean Architecture** e separação de responsabilidades para garantir escalabilidade e facilidade de manutenção.
+
+```text
 app/
-├── main.py                 # FastAPI entry point
+├── main.py                # Ponto de entrada FastAPI e montagem do Frontend
 ├── core/
-│   ├── config.py          # Configurações de env (Pydantic Settings)
-│   └── prompts.py         # ✨ System prompt centralizado (Clean Architecture)
+│   ├── config.py          # Gerenciamento de variáveis de ambiente (Pydantic Settings)
+│   └── prompts.py         # ✨ System Prompt centralizado e versionado
 ├── models/
-│   └── schemas.py         # Validação de entrada/saída (Pydantic)
-│                          # ⚠️ max_length=500 contra prompt injection
+│   └── schemas.py         # Modelos de dados e validação Pydantic (max_length=500)
 ├── api/
-│   └── routes.py          # Endpoints REST
-│                          # ⚠️ Try/except específicos por camada
+│   └── routes.py          # Definição dos endpoints REST e tratamento de erros
 ├── agent/
-│   └── agent_fresh.py     # Lógica de execução do agente
-│                          # Separada de prompts e ferramentas
+│   └── agent_fresh.py     # Orquestração do Grafo (LangGraph) e lógica do Agente
 ├── tools/
-│   └── bq_tools.py        # 2 Ferramentas com JOINs e agregações SQL
+│   └── bq_tools.py        # Ferramentas de execução SQL (BigQuery) com JOINs e agregações
+└── static/                # Frontend moderno (HTML/JS/Tailwind) com suporte a Voz
 ```
 
-### Princípios de Design
+### 🎯 Diferenciais Técnicos
 
-✅ **Clean Architecture**: Separação clara entre camadas  
-✅ **Tool Binding**: Ferramentas validadas com Pydantic e bindadas corretamente  
-✅ **SQL Avançado**: JOINs entre users/orders/order_items + aggregações SUM/AVG  
-✅ **Proteção**: Max_length validação + try/except específicos  
-✅ **Logging**: Auditoria completa de requisições e erros  
+* **Prompt Engineering Sênior:** System prompt estruturado com definição de persona, restrições de escopo e diretrizes de tom de voz.
+* **SQL Avançado:** Consultas otimizadas no BigQuery utilizando `JOINs` entre tabelas de usuários e pedidos para cálculo de métricas complexas.
+* **Segurança (Guardrails):** Proteção contra *Prompt Injection* via validação de tamanho de entrada e tratamento rigoroso de exceções.
+* **Interface Multimodal:** Chat interativo com processamento de voz nativo (STT/TTS) para uma experiência de usuário fluida.
 
 ---
 
-## 🔧 Ferramentas Disponíveis
+## 🔧 Ferramentas (Tools) do Agente
 
-### 1. **consultar_volume_trafego**
-Análise de usuários e tráfego por canal de mídia.
+O agente utiliza ferramentas específicas para consultar o dataset `thelook_ecommerce`:
 
-```python
-# Retorna:
-[
-  {"canal": "Search", "total_usuarios": 15420, "total_eventos": 23500},
-  {"canal": "Organic", "total_usuarios": 8730, "total_eventos": 12300},
-  ...
-]
-```
-
-### 2. **consultar_receita_faturamento** ⭐ (Nova)
-Análise de receita com JOINs complexos e agregações.
-
-```python
-# Query com JOINs:
-# users ← LEFT JOIN → orders ← LEFT JOIN → order_items
-
-# Retorna agregações:
-[
-  {
-    "canal_midia": "Search",
-    "total_pedidos": 8945,
-    "total_usuarios": 15420,
-    "receita_total": 450000.50,
-    "aov_medio": 50.25,              # Average Order Value
-    "receita_por_usuario": 29.21,
-    "taxa_conversao_usuarios": 0.580
-  },
-  ...
-]
-```
+1.  **`consultar_volume_trafego`**: Analisa o volume de sessões e usuários únicos por canal de aquisição.
+2.  **`consultar_receita_faturamento`**: Realiza cruzamentos complexos para extrair Receita Total, AOV (Ticket Médio), Conversão e Receita por Usuário por canal.
 
 ---
 
-## 🚀 Como Usar
+## 🚀 Como Rodar o Projeto Localmente
 
-### 1. **Setup Inicial**
+Siga os passos abaixo para configurar o ambiente em sua máquina:
 
-```bash
-# Instalar dependências
-pip install -r requirements.txt
+### 1. Requisitos Prévios
+* Ter o arquivo de credenciais do Google Cloud (`gcp_key.json`) na raiz do projeto.
+* Ter uma conta na Anthropic e uma `ANTHROPIC_API_KEY`.
 
-# Configurar variáveis de ambiente
-cat > .env << 'EOF'
-ANTHROPIC_API_KEY=sk-ant-...
-GCP_PROJECT_ID=seu-projeto-gcp
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+### 2. Configuração do Ambiente
+
+**Passo 1: Variáveis de Ambiente**
+Renomeie o arquivo `.env.example` para `.env` e preencha com suas chaves:
+```env
+ANTHROPIC_API_KEY=sua_chave_aqui
+GCP_PROJECT_ID=seu-projeto-id
+GOOGLE_APPLICATION_CREDENTIALS=gcp_key.json
 BIGQUERY_DATASET=thelook_ecommerce
-EOF
 ```
 
-### 2. **Rodar Servidor Localmente**
-
-Siga o passo a passo abaixo:
-
-**Passo 1:** Adicione o arquivo das credenciais do Google Cloud (`gcp_key.json`) na raiz do projeto.
-**Passo 2:** Configure o ambiente renomeando o arquivo `.env.example` para `.env` e adicione a sua chave da API da Anthropic.
-**Passo 3:** Crie o ambiente virtual do Python:
+**Passo 2: Criação do Ambiente Virtual**
 ```bash
 python -m venv venv
-Passo 4: Ative o ambiente virtual e instale as dependências:
+```
 
-Bash
-# No Windows:
+**Passo 3: Instalação de Dependências**
+```bash
+# Ativar o ambiente (Windows)
 .\venv\Scripts\activate
 
-# No Linux/Mac:
+# Ativar o ambiente (Linux/Mac)
 source venv/bin/activate
 
-# Instale os pacotes:
+# Instalar pacotes
 pip install -r requirements.txt
-Passo 5: Inicie o servidor FastAPI:
+```
 
-Bash
+**Passo 4: Execução do Servidor**
+```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-🎉 Pronto! O agente estará rodando.
+```
 
-Para acessar a interface visual do chat, abra no seu navegador: http://localhost:8000/
+---
 
-Para acessar a documentação interativa da API (Swagger), acesse: http://localhost:8000/docs
+## 🖥️ Interface e Documentação
+
+Após iniciar o servidor, você poderá acessar:
+
+* **Chat Interativo:** [http://localhost:8000/](http://localhost:8000/)
+* **Documentação da API (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 💡 Exemplo de Pergunta para Teste
+
+> *"Qual dos canais teve a melhor performance em termos de receita nos últimos 3 meses? Por que você acha que isso aconteceu?"*
 
 ### 3. **Exemplo de Requisição**
 
