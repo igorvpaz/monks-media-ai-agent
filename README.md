@@ -43,9 +43,11 @@ O agente utiliza ferramentas específicas para consultar o dataset `thelook_ecom
 
 ---
 
-## 🚀 Como Rodar o Projeto Localmente
+## 🚀 Como Rodar o Projeto
 
-Siga os passos abaixo para configurar o ambiente em sua máquina:
+## Opção 1: Acesse o projeto que deixei no ar em: https://monks-media-ai-agent-igor-vianna-paz.onrender.com/
+
+## Opção 2: Siga os passos abaixo para configurar o ambiente em sua máquina:
 
 ### 1. Requisitos Prévios
 * Ter o arquivo de credenciais do Google Cloud (`gcp_key.json`) na raiz do projeto.
