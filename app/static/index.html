@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONKS Media AI - Análise de Mídia com IA</title>
+
+    <!-- Tags para Favicon responsivo -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/site.webmanifest">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Marked.js para renderizar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- DOMPurify para sanitizar HTML (segurança) -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        }
+
+        #appContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f8fafc;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #1f2937;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Markdown Styling */
+        .markdown-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .markdown-content h1 {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin: 12px 0 8px 0;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin: 10px 0 6px 0;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.05em;
+            font-weight: 600;
+            margin: 8px 0 4px 0;
+        }
+
+        .markdown-content p {
+            margin: 6px 0;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 6px 0 6px 20px;
+            padding-left: 0;
+        }
+
+        .markdown-content li {
+            margin: 3px 0;
+        }
+
+        .markdown-content code {
+            background-color: #1f2937;
+            color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .markdown-content pre {
+            background-color: #111827;
+            color: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 0.85em;
+        }
+
+        .markdown-content pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .markdown-content blockquote {
+            border-left: 3px solid #f97316;
+            padding-left: 12px;
+            margin: 8px 0;
+            color: #4b5563;
+            font-style: italic;
+            font-size: 0.95em;
+        }
+
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .markdown-content th {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .markdown-content td {
+            border: 1px solid #e5e7eb;
+            padding: 8px;
+        }
+
+        .markdown-content a {
+            color: #f97316;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mic Recording Animation */
+        .mic-recording {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+            }
+        }
+
+        /* Scrollbar customizado */
+        #messagesContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #messagesContainer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #messagesContainer::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        #messagesContainer::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Input Focus */
+        #userInput:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Smooth transitions */
+        button {
+            transition: all 0.2s ease;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+    <div id="appContainer">
+        <!-- Header Fixo -->
+        <header class="bg-black text-white border-b border-slate-200 sticky top-0 z-50">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="text-2xl font-bold tracking-tight">MONKS MEDIA AI</div>
+                </div>
+                <div class="text-xs text-slate-400">Powered by Claude + BigQuery</div>
+            </div>
+        </header>
+
+        <!-- Área de Mensagens -->
+        <main class="flex-1 overflow-y-auto">
+            <div id="messagesContainer" class="max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+                <!-- Mensagem de Boas-vindas -->
+                <div class="flex justify-start message-enter">
+                    <div
+                        class="bg-white text-black rounded-2xl rounded-tl-none p-4 max-w-xs sm:max-w-sm border border-slate-200 shadow-sm">
+                        <p class="font-semibold text-sm">👋 Bem-vindo ao MONKS Media AI</p>
+                        <p class="text-xs text-slate-600 mt-2">Sou seu assistente de análise de mídia. Posso ajudá-lo
+                            com:</p>
+                        <ul class="text-xs text-slate-600 mt-2 space-y-1">
+                            <li>📊 Análise de tráfego por canal</li>
+                            <li>💰 Análise de receita e faturamento</li>
+                            <li>📈 AOV, conversão e performance</li>
+                            <li>💡 Insights e recomendações</li>
+                        </ul>
+                        <p class="text-xs text-slate-600 mt-3">Use texto ou 🎤 voz para começar</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer Fixo com Input -->
+        <footer class="bg-white border-t border-slate-200 sticky bottom-0 z-40 shadow-lg">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+                <!-- Input e Botões -->
+                <div class="flex gap-2 items-center">
+                    <!-- Botão de Microfone -->
+                    <button id="micButton" onclick="toggleMicrophone()"
+                        class="p-3 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 hover:border-slate-300 flex items-center justify-center flex-shrink-0 transition-all"
+                        title="Clique para falar">
+                        <svg id="micIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
+
+                    <!-- Input de Texto -->
+                    <input type="text" id="userInput" placeholder="Faça uma pergunta sobre análise de mídia..."
+                        class="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-black bg-white"
+                        onkeypress="handleKeyPress(event)" maxlength="500" />
+
+                    <!-- Botão de Enviar -->
+                    <button id="sendButton" onclick="sendMessage()"
+                        class="p-3 rounded-full bg-black text-white hover:bg-slate-800 flex items-center justify-center flex-shrink-0 transition-all"
+                        title="Enviar pergunta">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Contador de Caracteres e Status -->
+                <div class="flex items-center justify-between text-xs">
+                    <div class="text-slate-500">
+                        <span id="charCount">0</span>/500 caracteres
+                    </div>
+                    <div id="statusMessage" class="text-slate-600 hidden">
+                        <span id="statusText"></span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Script principal -->
+    <script>
+        // ===========================================================================
+        // CONFIGURAÇÃO GLOBAL
+        // ===========================================================================
+
+        const messagesContainer = document.getElementById('messagesContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const micButton = document.getElementById('micButton');
+        const micIcon = document.getElementById('micIcon');
+        const statusMessage = document.getElementById('statusMessage');
+        const statusText = document.getElementById('statusText');
+        const charCount = document.getElementById('charCount');
+
+        // Detecção de navegador para Speech Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        let isLoading = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micButton.classList.add('mic-recording');
+                micButton.classList.remove('bg-slate-100', 'border-slate-200', 'text-slate-600', 'hover:bg-slate-200', 'hover:border-slate-300');
+                micButton.classList.add('bg-orange-500', 'border-orange-600', 'text-white');
+                showStatus('🎤 Ouvindo... clique novamente para parar');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                micButton.classList.remove('mic-recording');
+                micButton.classList.remove('bg-orange-500', 'border-orange-600', 'text-white');
+                micButton.classList.add('bg-slate-100', 'border-slate-200', 'text-slate-600', 'hover:bg-slate-200', 'hover:border-slate-300');
+                hideStatus();
+            };
+
+            recognition.onerror = (event) => {
+                isListening = false;
+                micButton.classList.remove('mic-recording');
+                micButton.classList.remove('bg-orange-500', 'border-orange-600', 'text-white');
+                micButton.classList.add('bg-slate-100', 'border-slate-200', 'text-slate-600', 'hover:bg-slate-200', 'hover:border-slate-300');
+
+                const errorMessages = {
+                    'network': '❌ Erro de rede. Verifique sua conexão.',
+                    'no-speech': '⚠️ Nenhuma fala detectada. Tente novamente.',
+                    'audio-capture': '❌ Erro ao acessar o microfone.',
+                };
+
+                showStatus(errorMessages[event.error] || `❌ Erro: ${event.error}`);
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Atualiza o input com o texto detectado
+                if (finalTranscript) {
+                    userInput.value = finalTranscript.trim();
+                } else {
+                    userInput.value = interimTranscript;
+                }
+
+                updateCharCount();
+            };
+        } else {
+            micButton.disabled = true;
+            micButton.classList.add('opacity-50', 'cursor-not-allowed');
+            micButton.title = 'Speech Recognition não suportado neste navegador';
+        }
+
+        // ===========================================================================
+        // CONTROLE DE MICROFONE
+        // ===========================================================================
+
+        function toggleMicrophone() {
+            if (isLoading) {
+                showStatus('⏳ Aguarde a resposta anterior...');
+                return;
+            }
+
+            if (!recognition) {
+                showStatus('❌ Seu navegador não suporta reconhecimento de voz.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                userInput.value = '';
+                updateCharCount();
+                recognition.start();
+            }
+        }
+
+        // ===========================================================================
+        // ENVIO DE MENSAGEM
+        // ===========================================================================
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+
+            if (!message) {
+                showStatus('⚠️ Digite uma pergunta antes de enviar.');
+                return;
+            }
+
+            if (isLoading) {
+                showStatus('⏳ Aguarde a resposta anterior...');
+                return;
+            }
+
+            // Para o microfone se estiver ligado
+            if (isListening && recognition) {
+                recognition.stop();
+            }
+
+            // Adiciona mensagem do usuário
+            addMessage(message, 'user');
+            userInput.value = '';
+            updateCharCount();
+
+            // Mostra indicador de carregamento
+            showLoadingIndicator();
+            isLoading = true;
+            sendButton.disabled = true;
+            micButton.disabled = true;
+
+            try {
+                // Faz POST para /agent/ask
+                const response = await fetch('/agent/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_question: message,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const errorMsg = errorData.detail || `Erro ${response.status}`;
+                    addMessage(`❌ ${errorMsg}`, 'agent');
+                    showStatus(`Erro: ${errorMsg}`);
+                    return;
+                }
+
+                const data = await response.json();
+                const agentResponse = data.agent_answer;
+
+                // Remove indicador de carregamento
+                removeLoadingIndicator();
+
+                // Adiciona resposta do agente
+                addMessage(agentResponse, 'agent');
+
+                // Reproduz resposta em voz
+                speakResponse(agentResponse);
+
+                showStatus('✅ Resposta gerada! Ouvindo a resposta...');
+
+            } catch (error) {
+                removeLoadingIndicator();
+                console.error('Erro:', error);
+                addMessage(`❌ Erro ao conectar com o servidor: ${error.message}`, 'agent');
+                showStatus(`Erro: ${error.message}`);
+            } finally {
+                isLoading = false;
+                sendButton.disabled = false;
+                micButton.disabled = false;
+                hideStatus();
+            }
+        }
+
+        // ===========================================================================
+        // RENDERIZAÇÃO DE MENSAGENS
+        // ===========================================================================
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} message-enter`;
+
+            const contentDiv = document.createElement('div');
+
+            if (sender === 'user') {
+                // Mensagem do usuário: preto, alinhado à direita
+                contentDiv.className = 'bg-black text-white rounded-2xl rounded-tr-none p-4 max-w-xs sm:max-w-sm';
+            } else {
+                // Mensagem do agente: branco com borda, alinhado à esquerda
+                contentDiv.className = 'bg-white text-black rounded-2xl rounded-tl-none p-4 max-w-xs sm:max-w-sm border border-slate-200 shadow-sm';
+            }
+
+            if (sender === 'agent') {
+                // Renderiza Markdown para mensagem do agente
+                const html = marked.parse(text);
+                const cleanHtml = DOMPurify.sanitize(html);
+                contentDiv.innerHTML = `<div class="markdown-content">${cleanHtml}</div>`;
+            } else {
+                // Texto plano para mensagens do usuário
+                contentDiv.textContent = text;
+            }
+
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            // Scroll automático para a última mensagem
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 10);
+        }
+
+        // ===========================================================================
+        // INDICADORES DE CARREGAMENTO
+        // ===========================================================================
+
+        function showLoadingIndicator() {
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'loadingIndicator';
+            messageDiv.className = 'flex justify-start message-enter';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bg-white text-black rounded-2xl rounded-tl-none p-4 border border-slate-200 shadow-sm';
+
+            const dotsDiv = document.createElement('div');
+            dotsDiv.className = 'typing-indicator';
+
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'typing-dot';
+                dotsDiv.appendChild(dot);
+            }
+
+            contentDiv.appendChild(dotsDiv);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeLoadingIndicator() {
+            const indicator = document.getElementById('loadingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // ===========================================================================
+        // TEXT-TO-SPEECH (TTS)
+        // ===========================================================================
+
+        function speakResponse(text) {
+            // Remove markdown para leitura mais natural
+            const cleanText = text
+                .replace(/[#*_`]/g, '')
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                .substring(0, 1000); // Limita a 1000 caracteres para não ficar muito longo
+
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech Synthesis não suportado.');
+                return;
+            }
+
+            // Cancela qualquer fala anterior
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'pt-BR';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onstart = () => {
+                showStatus('🔊 Agente está falando...');
+            };
+
+            utterance.onend = () => {
+                hideStatus();
+            };
+
+            utterance.onerror = () => {
+                console.error('Erro ao falar resposta');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ===========================================================================
+        // UTILITÁRIOS
+        // ===========================================================================
+
+        function showStatus(message) {
+            statusText.textContent = message;
+            statusMessage.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusMessage.classList.add('hidden');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function updateCharCount() {
+            charCount.textContent = userInput.value.length;
+
+            // Muda cor se perto do limite
+            if (userInput.value.length > 450) {
+                charCount.parentElement.classList.add('text-orange-600');
+                charCount.parentElement.classList.remove('text-slate-500');
+            } else {
+                charCount.parentElement.classList.remove('text-orange-600');
+                charCount.parentElement.classList.add('text-slate-500');
+            }
+        }
+
+        userInput.addEventListener('input', updateCharCount);
+
+        // Focus no input ao carregar
+        userInput.focus();
+
+        console.log('✅ MONKS Media AI carregado com sucesso!');
+        console.log('Suporte:', {
+            speechRecognition: !!SpeechRecognition,
+            speechSynthesis: 'speechSynthesis' in window,
+        });
+    </script>
+</body>
+
+</html>
